@@ -30,7 +30,7 @@
 * Expend: The instructional expenditure per student at the college.
 * Grad.Rate: The graduation rate of the college as a percentage.
 
-## Hypothesis
+## Hypotheses
 
 * More students prefer Public universities over Private universities.
 * The costs associated with Public universities are less compared to Private universities.

@@ -30,4 +30,29 @@
 * Expend: The instructional expenditure per student at the college.
 * Grad.Rate: The graduation rate of the college as a percentage.
 
+## Hypothesis
+
+* More students prefer Public universities over Private universities.
+* The costs associated with Public universities are less compared to Private universities.
+* Public universities have better acceptance rates compared to Private universities.
+
+* We can test our Hypothesis at the end of the analysis.
+
+## Questions I tried to answer
+
+* Investigate the relationships between the universities on the basis of given variables using Principal Component Analysis. Do we find any relations and can we analyse if there is any difference between the Private and Public universities
+
+* Carry out cluster analysis to study relation between the universities and find out if there are any reasons behind the clustering. Is the clustering done on the basic of the type of university or something different?
+
+* Identify the important factors underlying the observed variables and examine the relationships between the universities with respect to these factors. Check if the factors help us clasify the type of the university (Public/Private)
+
+* Using regression, can we predict the type of university based on the acceptance rate of the university and the other variables? Which analysis method is most suitable for this data?
+
+## File Dictionary
+
+* US_College_Analysis_Report.pdf file gives the brief report of the questions answered and the hypothesis results.
+* College_Data_Cleaned.csv is the dataset considered for the analysis where randonly 30 colleges where chosen from the original master college dataset from Kaggle website.
+* The US_College_Analysis.Rmd file contains the R code for the complete analysis performed, the flow of thought process, and inferences mentioned after each step.
+* The US_College_Analysis.html file gives the output of the Rmd file which includes the outputs of the file with visuals and inferences.
+* US_College_Analysis_Report.ppt file is a bit more detailed presentation of the Report with more visuals and inferences used for presentation.
 

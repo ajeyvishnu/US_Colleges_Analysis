@@ -35,6 +35,8 @@
 * More students prefer Public universities over Private universities.
 * The costs associated with Public universities are less compared to Private universities.
 * Public universities have better acceptance rates compared to Private universities.
+* The differentiation between Public and Private institutes can be classified using Multivariate Analysis techniques.
+
 
 * We can test our Hypothesis at the end of the analysis.
 

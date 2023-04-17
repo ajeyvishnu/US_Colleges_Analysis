@@ -1,0 +1,523 @@
+---
+title: "US_College_Analysis"
+author: "aa2569@scarletmail.rutgers.edu"
+date: "4/12/2023"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Loading the Dataset
+
+```{r}
+library(readr)
+library(MVA)
+library(HSAUR2)
+library(SciViews)
+library(scatterplot3d)
+library(car)
+library(lattice)
+library(GGally)
+library(ggplot2)
+library(ggridges)
+library(ggvis)
+library(ggthemes)
+library(cowplot)
+library(gapminder)
+library(gganimate)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(RColorBrewer)
+library(Hotelling)
+library(stats)
+library(biotools)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(cluster)
+library(magrittr)
+library(NbClust)
+library(MASS)
+library(gvlma)
+library(leaps)
+library(relaimpo)
+library(e1071)
+library(pROC)
+library(memisc)
+library(ROCR)
+library(klaR)
+
+clg <- read.csv("/Users/ajayvishnu/Desktop/RUTGERS/Spring_2023/Multivariate Analysis/Datasets/College_Data_cleaned.csv", row.names = 1)
+
+attach(clg)
+```
+
+* The dataset is obtained from a large College dataset.
+* For the purpose of analysis, 30 colleges were selected in random.
+
+## Analysing the Data
+
+```{r}
+str(clg)
+```
+
+### Data Dictionary
+
+* Group: A categorical variable indicating whether the college is public or private. 1 indicates a private college and 0 indicates a public college.
+* Private: A binary variable indicating whether the college is private or not. 1 indicates a private college and 0 indicates a public college.
+* Apps: The total number of applications received by the college.
+* Accept: The total number of applications accepted by the college.
+* Acceptance_70: The acceptance rate of the college. (Acceptance rate = Accept/Apps, >70% - 1, else - 0)
+* Enroll: The total number of students enrolled in the college.
+* Top10perc: The percentage of new students who ranked in the top 10% of their high school class.
+* Top25perc: The percentage of new students who ranked in the top 25% of their high school class.
+* F.Undergrad: The total number of full-time undergraduate students enrolled in the college.
+* P.Undergrad: The total number of part-time undergraduate students enrolled in the college.
+* Outstate: The out-of-state tuition fee for the college.
+* Room.Board: The cost of room and board for the college.
+* Books: The estimated cost of books and supplies for a year of study.
+* Personal: The estimated personal expenses for a year of study.
+* PhD: The percentage of faculty members who hold a PhD degree.
+* Terminal: The percentage of faculty members who hold a terminal degree in their field of study.
+* S.F.Ratio: The student-to-faculty ratio for the college.
+* perc.alumni: The percentage of alumni who donate to the college.
+* Expend: The instructional expenditure per student at the college.
+* Grad.Rate: The graduation rate of the college as a percentage.
+
+### Correlation Test
+
+```{r}
+corrplot(cor(clg), type = "upper", method = "color")
+```
+
+* The correlation matrix shows us that there is correlation between the columns.
+* Hence, Principal Component Analysis (PCA) can be used to reduce the number of columns for the analysis.
+
+## Principal Component Analysis (PCA)
+
+###PCA
+
+```{r}
+clg_pca <- prcomp(clg[,-1],scale=TRUE)
+```
+
+* We have excluded Column 1 which is Public/Private as we are trying answer the question on how to classify these colleges.
+
+### Scree diagram
+
+```{r}
+fviz_eig(clg_pca, addlabels = TRUE)
+```
+
+* The scree diagram shows us an elbow at 3 principal components.
+* So, this stats that the ideal number of components to be used is 3.
+
+### Biplot
+
+```{r}
+fviz_pca_var(clg_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+```
+
+* The distance between points in a biplot reflects generalised distance between the units.
+* Length of the vector reflects the variance of the variable.
+* Correlation of the varaibles reflected by the angle between them. Smaller the angle, greater the correlation.
+* We can see that the correlations are as expected.
+* Number of Applications and Acceptances are highly correlated, PhD and Terminal are highly correlated, Out State and Room.Board are highly correlated. 
+
+### Plotting collges
+
+```{r}
+res.pca <- PCA(clg[,-1], graph = FALSE)
+fviz_pca_ind(res.pca)
+```
+
+* The colleges have been plotted based on their PCA values.
+* It can be observed that all the colleges on the left of Y axis are Private colleges and the ones on the right are Public universities.
+* It is NOT based on the geographic location.
+* Imposing the biplot on this, gives better understanding of the visual.
+
+### Colleges and the biplot
+
+```{r}
+fviz_pca_biplot(res.pca, repel = TRUE,
+                col.var = "#FC4E07",
+                )
+```
+
+* It can be seen that the public universities clearly have higher number of application, acceptances, and enrollments compared to private institutions.
+* That too the colleges closer to the X-axis has higher numbers such as Rutgers, New Brunswick.
+* The personal expenses and the expenses for books are also higher towards the public universities.
+* The number of full time and part time undergrad students are more towards public universities.
+* Full time undergrad are more for Rutgers, New Brunswick and Part time undergrad are more for colleges Utah and Texas, Austin universities.
+* The university expenditure per student is the highest for CMU.
+
+## Clustering
+
+### Distance matrix
+
+```{r}
+clg_dist <- get_dist(clg[,-1], stand = TRUE, method = "euclidean")
+```
+
+### Kmeans optimal clusters
+
+```{r}
+matstd_clg <- scale(clg[,-1])
+#scaled
+fviz_nbclust(matstd_clg, kmeans, method = "gap_stat")
+```
+
+* This method shows that the optimal number of clusters is 1.
+* This doesn't look right, so let us test this with another optimal cluster test.
+
+### Code for running without error
+
+```{r}
+fviz_nbclust <- function (x, FUNcluster = NULL, method = c("silhouette", "wss", 
+                                                           "gap_stat"), diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), 
+                          barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", 
+                          print.summary = TRUE, ...) 
+{
+  set.seed(123)
+  if (k.max < 2) 
+    stop("k.max must bet > = 2")
+  method = match.arg(method)
+  if (!inherits(x, c("data.frame", "matrix")) & !("Best.nc" %in% 
+                                                  names(x))) 
+    stop("x should be an object of class matrix/data.frame or ", 
+         "an object created by the function NbClust() [NbClust package].")
+  if (inherits(x, "list") & "Best.nc" %in% names(x)) {
+    best_nc <- x$Best.nc
+    if (any(class(best_nc) == "numeric") ) 
+      print(best_nc)
+    else if (any(class(best_nc) == "matrix") )
+      .viz_NbClust(x, print.summary, barfill, barcolor)
+  }
+  else if (is.null(FUNcluster)) 
+    stop("The argument FUNcluster is required. ", "Possible values are kmeans, pam, hcut, clara, ...")
+  else if (!is.function(FUNcluster)) {
+    stop("The argument FUNcluster should be a function. ", 
+         "Check if you're not overriding the specified function name somewhere.")
+  }
+  else if (method %in% c("silhouette", "wss")) {
+    if (is.data.frame(x)) 
+      x <- as.matrix(x)
+    if (is.null(diss)) 
+      diss <- stats::dist(x)
+    v <- rep(0, k.max)
+    if (method == "silhouette") {
+      for (i in 2:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_ave_sil_width(diss, clust$cluster)
+      }
+    }
+    else if (method == "wss") {
+      for (i in 1:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_withinSS(diss, clust$cluster)
+      }
+    }
+    df <- data.frame(clusters = as.factor(1:k.max), y = v, 
+                     stringsAsFactors = TRUE)
+    ylab <- "Total Within Sum of Square"
+    if (method == "silhouette") 
+      ylab <- "Average silhouette width"
+    p <- ggpubr::ggline(df, x = "clusters", y = "y", group = 1, 
+                        color = linecolor, ylab = ylab, xlab = "Number of clusters k", 
+                        main = "Optimal number of clusters")
+    if (method == "silhouette") 
+      p <- p + geom_vline(xintercept = which.max(v), linetype = 2, 
+                          color = linecolor)
+    return(p)
+  }
+  else if (method == "gap_stat") {
+    extra_args <- list(...)
+    gap_stat <- cluster::clusGap(x, FUNcluster, K.max = k.max, 
+                                 B = nboot, verbose = verbose, ...)
+    if (!is.null(extra_args$maxSE)) 
+      maxSE <- extra_args$maxSE
+    else maxSE <- list(method = "firstSEmax", SE.factor = 1)
+    p <- fviz_gap_stat(gap_stat, linecolor = linecolor, 
+                       maxSE = maxSE)
+    return(p)
+  }
+}
+
+.viz_NbClust <- function (x, print.summary = TRUE, barfill = "steelblue", 
+                          barcolor = "steelblue") 
+{
+  best_nc <- x$Best.nc
+  if (any(class(best_nc) == "numeric") )
+    print(best_nc)
+  else if (any(class(best_nc) == "matrix") ) {
+    best_nc <- as.data.frame(t(best_nc), stringsAsFactors = TRUE)
+    best_nc$Number_clusters <- as.factor(best_nc$Number_clusters)
+    if (print.summary) {
+      ss <- summary(best_nc$Number_clusters)
+      cat("Among all indices: \n===================\n")
+      for (i in 1:length(ss)) {
+        cat("*", ss[i], "proposed ", names(ss)[i], 
+            "as the best number of clusters\n")
+      }
+      cat("\nConclusion\n=========================\n")
+      cat("* According to the majority rule, the best number of clusters is ", 
+          names(which.max(ss)), ".\n\n")
+    }
+    df <- data.frame(Number_clusters = names(ss), freq = ss, 
+                     stringsAsFactors = TRUE)
+    p <- ggpubr::ggbarplot(df, x = "Number_clusters", 
+                           y = "freq", fill = barfill, color = barcolor) + 
+      labs(x = "Number of clusters k", y = "Frequency among all indices", 
+           title = paste0("Optimal number of clusters - k = ", 
+                          names(which.max(ss))))
+    return(p)
+  }
+}
+```
+
+### Another test for optimal clusters
+
+```{r}
+res.nbclust <- clg[,-1] %>% scale() %>% NbClust(distance = "euclidean", min.nc = 2, max.nc = 10, method = "complete", index ="all") 
+fviz_nbclust(res.nbclust, ggtheme = theme_minimal())
+```
+
+* This test shows the optimal number of clusters is 3.
+* Visualizing the clusters will give us a better understanding of how they are classified.
+
+```{r}
+set.seed(123)
+km.res <- kmeans(matstd_clg, 3, nstart = 25)
+# Visualize
+fviz_cluster(km.res, data = matstd_clg,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+```
+
+* In the next step we check for any correlation and then infer from the clustering visuals.
+* We do this by using the scaling function.
+
+```{r}
+pam.res <- pam(matstd_clg, 3)
+fviz_cluster(pam.res)
+```
+
+* We observe that all the universities in Cluster 3 (blue) are Private Universities.
+* Except two of Private universities rest all fell under Cluster 3.
+* The Public Universities are placed in the remaining two clusters.
+* The ones in Cluster 1 (Red) have very high number of applications, acceptances and enrollments (in thousands).
+* The Cluster 2 (green) is also of Public universities but the ones with fewer applications, acceptances, and enrollments (in hundreds).
+
+```{r}
+res.hc <- matstd_clg %>% scale() %>% dist(method = "euclidean") %>%
+  hclust(method = "ward.D2")
+
+fviz_dend(res.hc, k = 3, # Cut in four groups
+          cex = 0.5, # label size
+          k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+          color_labels_by_k = TRUE, # color labels by groups
+          rect = TRUE # Add rectangle around groups
+          )
+```
+
+* In this clustering, all the universities in teal colour are Private universities. 
+* The universities in Blue are all Public and the ones in Yellow cluster are a mixture of public and private universities.
+* Even using this method, we are able to differentiate between public and private upto some extent.
+* The Blue and Yellow differentiation is mostly focused on the number of applications, acceptances, and enrollments. The ones in blue have much higher numbers when compared to the ones in yellow.
+
+## Exploratory Factor Analysis (EFA)
+
+### EFA
+
+```{r}
+fit.pc <- principal(clg[,-1], nfactors=5, rotate="varimax")
+```
+
+### EFA Scores for each college
+
+```{r}
+fit.pc$scores
+```
+
+* From observation we can see that all Private Universities had negative RC1 and RC4.
+* Except a few public universities, rest all have positive RC1 and RC4.
+* We can further look at the fit.pc diagram to understand a better classification based on these values.
+
+### Parallel Scree plot
+
+```{r}
+fa.parallel(clg[,-1])
+```
+
+* The scree plot shows that the ideal factors for both PCA and EFA is 3.
+* This is obtained from the elbow from both the lines.
+
+```{r}
+fa.diagram(fit.pc)
+```
+
+* As the scree plot suggests, we take the first three components - RC1, RC3, RC4.
+* The diagram shows that Applications, Acceptances, Enrollments, Graduation Rate all come under RC1.
+* We can also observe that all the Private universities have a negative RC1. A few of Public universities also have negative value.
+* In similar lines, Rooms, Personal expenses, and Part time undergrad is related to RC3.
+* Here we can observe a more clear classification, as all Private universties have a negative RC3 and all Public universities have a positive RC3.
+* Using the EFA, we were clearly able to differentiate between the university type.
+
+```{r}
+summary(vss(clg[,-1]))
+```
+
+* The VSS plot shows that from 3 factors the line is stable.
+* This implies that the ideal number of factors is 3, justifies the result we got from scree plot too. 
+
+## Multiple Regression
+
+* As the variable we are observing is if the college is Private or Public and also the Acceptance rate, rather than Multiple regression, Logistics regression make more sense. 
+* So, we directly jump into Logistic Regression.
+
+## Logistic Regression
+
+```{r}
+str(clg)
+```
+
+* The str function shows the data types of each of the variable
+* Here, we are comparing the type of university and the acceptance rate.
+* Hence, we need to give them a character name and convert them into a factor for the analysis.
+
+```{r}
+clg[clg$Private == 0,]$Private <- "Public"
+clg[clg$Private == 1,]$Private <- "Private"
+clg$Private <- as.factor(clg$Private)
+
+clg$Acceptance_70 <- ifelse(test=clg$Acceptance_70 == 0, yes="Acceptance <= 70%", no="Acceptance > 70%") 
+clg$Acceptance_70  <- as.factor(clg$Acceptance_70 )
+```
+
+```{r}
+str(clg)
+```
+
+* The updated dataset gives us the data types we need.
+
+```{r}
+xtabs(~ Acceptance_70 + Private, data=clg)
+```
+
+* The 30 colleges data shows that most private universities had an acceptance rate of >70% (10 out of 13)
+* Most Public universities had a acceptance rate less than 70% (12 of 17)
+
+```{r}
+logistic_simple <- glm(Acceptance_70 ~ Private, data=clg, family="binomial")
+summary(logistic_simple)
+```
+
+* The regression results show that that the type of university has a significant impact on the acceptance rate of the university.
+
+```{r}
+predicted.data <- data.frame(probability.of.acpt=logistic_simple$fitted.values,UniType=clg$Private)
+xtabs(~ probability.of.acpt + UniType, data=predicted.data)
+```
+
+* The predicted data shows all >70% as private and less than 70% as Public.
+* This is a very bad prediction.
+* We can future look for better prediction
+
+```{r}
+logistic <- glm(Acceptance_70 ~ Private+Enroll+Top10perc+Top25perc+F.Undergrad+P.Undergrad+Terminal+S.F.Ratio+PhD+Grad.Rate, data=clg, family="binomial")
+summary(logistic)
+```
+
+* All the expense related variables have not been considered for the regression.
+
+```{r}
+predicted.data <- data.frame(probability.of.acpt=logistic$fitted.values,acpt=clg$Acceptance_70)
+predicted.data <- predicted.data[order(predicted.data$probability.of.acpt, decreasing=FALSE),]
+predicted.data$rank <- 1:nrow(predicted.data)
+## Lastly, we can plot the predicted probabilities for each sample having
+## heart disease and color by whether or not they actually had heart disease
+ggplot(data=predicted.data, aes(x=rank, y=probability.of.acpt)) +
+geom_point(aes(color=acpt), alpha=1, shape=4, stroke=2) +
+xlab("Index") +
+ylab("Predicted probability of getting heart disease")
+```
+
+* The plot shows that we can classify all to the left of the 16 mark are Acceptance less than 70% and the right are greater than 70%.
+* There are a few exceptions though.
+
+```{r}
+roc(clg$Acceptance_70,logistic$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, percent=TRUE, print.auc=TRUE)
+```
+
+* The ROC curve shows an AUC of 92.9%
+* A higher AUC indicates better performance of the classifier in terms of its ability to distinguish between positive and negative samples. 
+* This ideally specifies the degree or measure of separability or how well a machine learning classifier can distinguish between positive and negative classes.
+* A value of 92.9% is pretty good.
+
+```{r}
+roc(clg$Acceptance_70, logistic_simple$fitted.values, plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc=TRUE)
+plot.roc(clg$Acceptance_70, logistic$fitted.values, percent=TRUE, col="#4daf4a", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=40)
+legend("bottomright", legend=c("Simple", "Non Simple"), col=c("#377eb8", "#4daf4a"), lwd=4) 
+```
+
+* Here we added both the ROC of the regression only with university type and the regression considering all variables.
+* We can see that the regression with all variables has an AUC of almost 20% more suggesting this is a better regression model.
+
+## LDA
+
+* As we have only 2 levels, Logsitic Regression is the one that works well.
+* But just in case, we can check LDA too.
+
+```{r}
+clg1 <- read.csv("/Users/ajayvishnu/Desktop/RUTGERS/Spring_2023/Multivariate Analysis/Datasets/College_Data_cleaned.csv", row.names = 1)
+
+attach(clg1)
+
+clg1[clg1$Private == 0,]$Private <- "Public"
+clg1[clg1$Private == 1,]$Private <- "Private"
+
+```
+
+* Renamed the university type to Character from int.
+
+```{r}
+clg1.data <- as.matrix(clg1[,c(2:19)])
+clg1_raw <- cbind(clg1.data, as.numeric(as.factor(clg1$Private))-1)
+colnames(clg1_raw)[19] <- "UniType"
+smp_size_raw <- floor(0.75 * nrow(clg1_raw))
+train_ind_raw <- sample(nrow(clg1_raw), size = smp_size_raw)
+train_raw.df <- as.data.frame(clg1_raw[train_ind_raw, ])
+test_raw.df <- as.data.frame(clg1_raw[-train_ind_raw, ])
+clg1_raw.lda <- lda(formula = train_raw.df$UniType ~ ., data = train_raw.df)
+plot(clg1_raw.lda, dimen = 1, type = "b")
+```
+
+* For LDA, we consider a 75% training set and a 25% testing set.
+* Note that the selection happens in a random manner.
+* We can see that both the groups are well away from zero and there is no overlap at zero.
+
+```{r}
+clg1_raw.lda.predict <- predict(clg1_raw.lda, newdata = test_raw.df)
+
+clg1_raw.lda.predict.posteriors <- as.data.frame(clg1_raw.lda.predict$posterior)
+
+pred <- prediction(clg1_raw.lda.predict.posteriors[,2], test_raw.df$UniType)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+auc.train <- performance(pred, measure = "auc")
+auc.train <- auc.train@y.values
+plot(roc.perf)
+abline(a=0, b= 1)
+text(x = .25, y = .65 ,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+```
+
+* The AUC is weird and less than 50%.
+* Hence, we go back to Logistic Regression for this case and consider only that.
+

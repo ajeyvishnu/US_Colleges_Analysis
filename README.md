@@ -42,13 +42,14 @@
 
 ## Questions I tried to answer
 
-* Investigate the relationships between the universities on the basis of given variables using Principal Component Analysis. Do we find any relations and can we analyse if there is any difference between the Private and Public universities
+* Investigate the relationships between the universities based on given variables using Principal Component Analysis. Do we find any relations, and can we analyse if there is any difference between the Private and Public Universities
 
-* Carry out cluster analysis to study relation between the universities and find out if there are any reasons behind the clustering. Is the clustering done on the basic of the type of university or something different?
+* Carry out cluster analysis to study the relationship between the universities and find out if there are any reasons behind the clustering. Is the clustering done based on the type of university or something different?
 
-* Identify the important factors underlying the observed variables and examine the relationships between the universities with respect to these factors. Check if the factors help us clasify the type of the university (Public/Private)
+* Identify the important factors underlying the observed variables and examine the relationships between the universities for these factors. Check if the factors help us classify the type of university (Public/Private)
 
-* Using regression, can we predict the type of university based on the acceptance rate of the university and the other variables? Which analysis method is most suitable for this data?
+* Using regression, can we predict the acceptance rate of the universities based on all the factors provided for the universities? Which regression technique works best for this?
+
 
 ## File Dictionary
 

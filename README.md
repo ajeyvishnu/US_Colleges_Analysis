@@ -5,8 +5,7 @@
 ### Source and Editing
 * The dataset of US College admission details has been considered from Kaggle.
 * Reference: https://www.kaggle.com/datasets/yashgpt/us-college-data
-* Randomly 30 colleges have been selected for the analysis.
-* The hypothesis and the questions that were attempted have been provided below.
+* The questions and the solutions are mentioned below.
 
 ### Data Dictionary
 * Group: A categorical variable indicating whether the college is public or private. 1 indicates a private college and 0 indicates a public college.
@@ -30,25 +29,12 @@
 * Expend: The instructional expenditure per student at the college.
 * Grad.Rate: The graduation rate of the college as a percentage.
 
-## Hypotheses
-
-* More students prefer Public universities over Private universities.
-* The costs associated with Public universities are less compared to Private universities.
-* Public universities have better acceptance rates compared to Private universities.
-* The differentiation between Public and Private institutes can be classified using Multivariate Analysis techniques.
-
-
-* We can test our Hypothesis at the end of the analysis.
 
 ## Questions I tried to answer
 
-* Investigate the relationships between the universities based on given variables using Principal Component Analysis. Do we find any relations, and can we analyse if there is any difference between the Private and Public Universities
+1. Based on the given variables, can we classify the colleges based on their type (Public/Private)?
 
-* Carry out cluster analysis to study the relationship between the universities and find out if there are any reasons behind the clustering. Is the clustering done based on the type of university or something different?
-
-* Identify the important factors underlying the observed variables and examine the relationships between the universities for these factors. Check if the factors help us classify the type of university (Public/Private)
-
-* Using regression, can we predict the acceptance rate of the universities based on all the factors provided for the universities? Which regression technique works best for this?
+2. Based on the given variables, can we predict the type of college?
 
 
 ## File Dictionary

@@ -1,0 +1,435 @@
+---
+title: "US_College_Analysis"
+author: "aa2569@scarletmail.rutgers.edu"
+date: "4/17/2023"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Loading the Dataset
+
+```{r}
+library(readr)
+library(MVA)
+library(HSAUR2)
+library(SciViews)
+library(scatterplot3d)
+library(car)
+library(lattice)
+library(GGally)
+library(ggplot2)
+library(ggridges)
+library(ggvis)
+library(ggthemes)
+library(cowplot)
+library(gapminder)
+library(gganimate)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(RColorBrewer)
+library(Hotelling)
+library(stats)
+library(biotools)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(cluster)
+library(magrittr)
+library(NbClust)
+library(MASS)
+library(gvlma)
+library(leaps)
+library(relaimpo)
+library(e1071)
+library(pROC)
+library(memisc)
+library(ROCR)
+library(klaR)
+library(caret)
+library(caTools)
+
+clg <- read.csv("/Users/ajayvishnu/Desktop/RUTGERS/Spring_2023/Multivariate Analysis/Datasets/College_Data.csv", row.names = 1)
+
+
+attach(clg)
+```
+
+* The dataset is obtained from Kaggle: https://www.kaggle.com/datasets/yashgpt/us-college-data
+* It has 777 colleges as rows and 18 columns defining various aspects for each college.
+
+## QUESTIONS
+
+#### Based on the given variables, can we classify the colleges based on their type (Public/Private)?
+
+#### Based on the given variables, can we predict the type of the college?
+
+## Analysing the Data
+
+```{r}
+str(clg)
+```
+
+* The first column showing if the college is Private or Public has been changed manually. (1 - Private, 0 - Public)
+* In this analysis, we try to determine if we are able to classify between Public and Private colleges based on the given data, and also if we can predict the type of university based on the rest of the variables in the data.
+
+### Data Dictionary
+
+* Group: A categorical variable indicating whether the college is public or private. 1 indicates a private college and 0 indicates a public college.
+* Private: A binary variable indicating whether the college is private or not. 1 indicates a private college and 0 indicates a public college.
+* Apps: The total number of applications received by the college.
+* Accept: The total number of applications accepted by the college.
+* Enroll: The total number of students enrolled in the college.
+* Top10perc: The percentage of new students who ranked in the top 10% of their high school class.
+* Top25perc: The percentage of new students who ranked in the top 25% of their high school class.
+* F.Undergrad: The total number of full-time undergraduate students enrolled in the college.
+* P.Undergrad: The total number of part-time undergraduate students enrolled in the college.
+* Outstate: The out-of-state tuition fee for the college.
+* Room.Board: The cost of room and board for the college.
+* Books: The estimated cost of books and supplies for a year of study.
+* Personal: The estimated personal expenses for a year of study.
+* PhD: The percentage of faculty members who hold a PhD degree.
+* Terminal: The percentage of faculty members who hold a terminal degree in their field of study.
+* S.F.Ratio: The student-to-faculty ratio for the college.
+* perc.alumni: The percentage of alumni who donate to the college.
+* Expend: The instructional expenditure per student at the college.
+* Grad.Rate: The graduation rate of the college as a percentage.
+
+### Correlation Test
+
+```{r}
+corrplot(cor(clg), type = "upper", method = "color")
+```
+
+* The correlation matrix shows us that there is correlation between the columns.
+* Hence, Principal Component Analysis (PCA) can be used to reduce the number of columns for the analysis.
+
+## Principal Component Analysis (PCA)
+
+###PCA
+
+```{r}
+clg_pca <- prcomp(clg[,-1],scale=TRUE)
+```
+
+* We have excluded Column 1 which is Public/Private as we are trying answer the question on how to classify these colleges.
+
+### Scree diagram
+
+```{r}
+fviz_eig(clg_pca, addlabels = TRUE)
+```
+
+* The scree diagram shows us that sum of the first 2 principal components is less than 70%.
+* So, we cannot move forward using PCA for column reduction.
+* We now move on to check Exploratory Factor Analysis (EFA).
+
+## Exploratory Factor Analysis (EFA)
+
+### EFA
+
+```{r}
+fit.pc <- principal(clg[,-1], nfactors=5, rotate="varimax")
+fa.diagram(fit.pc)
+```
+
+### Defining the factors obtained
+
+##### RC2 - Student numbers
+* RC2 pertains the Applications, Acceptances, Enrollments, Number of full time and part time undergraduate students.
+* This summarises that RC2 is taking the number of students count in a broader picture.
+
+##### RC1 - Student merit
+* RC1 summarize the percentage of students who ranked 10%, 25% in their high school, the Graduation Rate of the college.
+* This shows that this factor is defined by the merit of the student.
+
+##### RC5 - Educational/College Expenses
+* RC5 caters to Outstate tuition expenses, Room and Board expenses, and the instructional expenses per each student.
+* So, this can be defined as the educational expenses incurred by student.
+
+##### RC4 - Faculty qualification
+* RC4 sums up the educational qualification of the faculty at the colleges.
+* It defines if the faculty hold a PhD or a terminal degree.
+
+##### RC3 - Student Expenses
+* RC3 gathers the details of the expenses incurred for books and personal expenses of the students.
+* It summarises the personal expenses the student spends on their development.
+
+### Reducing the existing variables and using factors for further analysis
+
+```{r}
+efa_data <- as.data.frame(fit.pc$scores)
+```
+
+* For our future analysis in clustering, we will be using the factors we obtained from EFA instead of all the 16 variables in the original dataset.
+
+## Clustering
+
+### Distance matrix
+
+```{r}
+clg_dist <- get_dist(efa_data, stand = TRUE, method = "euclidean")
+```
+
+* We consider the factors from EFA instead of the original dataset variables for the cluster analysis.
+
+### Kmeans optimal clusters
+
+```{r}
+set.seed(123)
+matstd_clg <- scale(efa_data)
+```
+
+* We scale the data to consider for identifying the optimal number of clusters.
+
+### Code for running without error
+
+```{r}
+fviz_nbclust <- function (x, FUNcluster = NULL, method = c("silhouette", "wss", 
+                                                           "gap_stat"), diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), 
+                          barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", 
+                          print.summary = TRUE, ...) 
+{
+  set.seed(1111)
+  if (k.max < 2) 
+    stop("k.max must bet > = 2")
+  method = match.arg(method)
+  if (!inherits(x, c("data.frame", "matrix")) & !("Best.nc" %in% 
+                                                  names(x))) 
+    stop("x should be an object of class matrix/data.frame or ", 
+         "an object created by the function NbClust() [NbClust package].")
+  if (inherits(x, "list") & "Best.nc" %in% names(x)) {
+    best_nc <- x$Best.nc
+    if (any(class(best_nc) == "numeric") ) 
+      print(best_nc)
+    else if (any(class(best_nc) == "matrix") )
+      .viz_NbClust(x, print.summary, barfill, barcolor)
+  }
+  else if (is.null(FUNcluster)) 
+    stop("The argument FUNcluster is required. ", "Possible values are kmeans, pam, hcut, clara, ...")
+  else if (!is.function(FUNcluster)) {
+    stop("The argument FUNcluster should be a function. ", 
+         "Check if you're not overriding the specified function name somewhere.")
+  }
+  else if (method %in% c("silhouette", "wss")) {
+    if (is.data.frame(x)) 
+      x <- as.matrix(x)
+    if (is.null(diss)) 
+      diss <- stats::dist(x)
+    v <- rep(0, k.max)
+    if (method == "silhouette") {
+      for (i in 2:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_ave_sil_width(diss, clust$cluster)
+      }
+    }
+    else if (method == "wss") {
+      for (i in 1:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_withinSS(diss, clust$cluster)
+      }
+    }
+    df <- data.frame(clusters = as.factor(1:k.max), y = v, 
+                     stringsAsFactors = TRUE)
+    ylab <- "Total Within Sum of Square"
+    if (method == "silhouette") 
+      ylab <- "Average silhouette width"
+    p <- ggpubr::ggline(df, x = "clusters", y = "y", group = 1, 
+                        color = linecolor, ylab = ylab, xlab = "Number of clusters k", 
+                        main = "Optimal number of clusters")
+    if (method == "silhouette") 
+      p <- p + geom_vline(xintercept = which.max(v), linetype = 2, 
+                          color = linecolor)
+    return(p)
+  }
+  else if (method == "gap_stat") {
+    extra_args <- list(...)
+    gap_stat <- cluster::clusGap(x, FUNcluster, K.max = k.max, 
+                                 B = nboot, verbose = verbose, ...)
+    if (!is.null(extra_args$maxSE)) 
+      maxSE <- extra_args$maxSE
+    else maxSE <- list(method = "firstSEmax", SE.factor = 1)
+    p <- fviz_gap_stat(gap_stat, linecolor = linecolor, 
+                       maxSE = maxSE)
+    return(p)
+  }
+}
+
+.viz_NbClust <- function (x, print.summary = TRUE, barfill = "steelblue", 
+                          barcolor = "steelblue") 
+{
+  best_nc <- x$Best.nc
+  if (any(class(best_nc) == "numeric") )
+    print(best_nc)
+  else if (any(class(best_nc) == "matrix") ) {
+    best_nc <- as.data.frame(t(best_nc), stringsAsFactors = TRUE)
+    best_nc$Number_clusters <- as.factor(best_nc$Number_clusters)
+    if (print.summary) {
+      ss <- summary(best_nc$Number_clusters)
+      cat("Among all indices: \n===================\n")
+      for (i in 1:length(ss)) {
+        cat("*", ss[i], "proposed ", names(ss)[i], 
+            "as the best number of clusters\n")
+      }
+      cat("\nConclusion\n=========================\n")
+      cat("* According to the majority rule, the best number of clusters is ", 
+          names(which.max(ss)), ".\n\n")
+    }
+    df <- data.frame(Number_clusters = names(ss), freq = ss, 
+                     stringsAsFactors = TRUE)
+    p <- ggpubr::ggbarplot(df, x = "Number_clusters", 
+                           y = "freq", fill = barfill, color = barcolor) + 
+      labs(x = "Number of clusters k", y = "Frequency among all indices", 
+           title = paste0("Optimal number of clusters - k = ", 
+                          names(which.max(ss))))
+    return(p)
+  }
+}
+```
+
+### Test for optimal clusters
+
+```{r}
+res.nbclust <- efa_data %>% scale() %>% NbClust(distance = "euclidean", min.nc = 2, max.nc = 10, method = "complete", index ="all") 
+fviz_nbclust(res.nbclust, ggtheme = theme_minimal())
+```
+
+* This test shows the optimal number of clusters is 2, which makes sense as we would like to check if the college is Private or Public.
+* We now try to visualize the clusters for the colleges and see if we can classify them based on the Type of the college (Private/Public)
+
+### Cluster plot with 2 clusters
+
+```{r}
+set.seed(1111)
+km.res <- kmeans(matstd_clg, 2, nstart = 25)
+# Visualize
+fviz_cluster(km.res, data = matstd_clg,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+```
+
+* As there are 777 colleges, the cluster plot looks very messy.
+* We can try to generate a confusion matrix for the above analysis and see the results more clearly.
+
+### Confusion Matrix & Accuracy
+
+```{r}
+Clustered <- ifelse(km.res$cluster > 1.5, "Public", "Private")
+Actual <- ifelse(clg$Private == 1, "Private", "Public")
+confusion_mat <- table(Clustered, Actual)
+confusion_mat
+```
+
+* The confusion matrix gives us a better understanding of how the actual type of college is clustered.
+* We see that colleges have been clustered not to 100% accuracy. There are disruptions and we can check how accurate we are.
+
+```{r}
+accuracy <- sum(diag(confusion_mat)) / sum(confusion_mat)
+cat("Accuracy:", round(accuracy, 3), "\n")
+```
+
+* We see that the clustering has classified the colleges with 88.9% accuracy.
+* We can consider this as good outcome as the accuracy is close to 90%.
+* We can conclude that we can classify the type of college based on the data provided.
+* Further, we check if we can predict the type of college based on the inputs provided.
+
+## Logistic Regression
+
+```{r}
+str(clg)
+```
+
+* The str function shows the data types of each of the variable
+* Here, we want to predict if the college is Public or Private based on the variables in other columns.
+* For this, we create a training and testing sets as below.
+
+### Defining training and testing sets
+
+```{r}
+set.seed(1234)
+split = sample.split(clg$Private, SplitRatio = 0.70)
+train = subset(clg, split == TRUE)
+test = subset(clg, split == FALSE)
+
+Xtrain <- train[,2:18]
+Ytrain <- train[,1]
+
+Xtest <- test[,2:18]
+```
+
+* 70% of the data is selected for training and the rest 30% for testing our regression.
+* The first column (College Type) is used as Ytrain which is our response variable.
+
+### Performing Regression
+
+```{r}
+x <- cbind(Xtrain,Ytrain)
+logistic <- glm(Ytrain ~ ., data = x,family='binomial')
+summary(logistic)
+```
+
+* The logistic regression is performed and we considered all the variables in the dataset for regression
+
+### Checking the confusion matrix for our prediction
+
+```{r}
+set.seed(12345)
+probabilities <- predict(logistic, newdata = Xtest, type = "response")
+
+predicted <- ifelse(probabilities > 0.5, "Yes", "No")
+actual <- ifelse(test$Private == 1, "Yes", "No")
+confusion <- table(predicted, actual)
+confusion
+```
+
+* The confusion matrix is obtained to test our prediction based on the regression.
+
+### Accuracy and Precision
+
+```{r}
+accuracy <- sum(diag(confusion)) / sum(confusion)
+precision <- confusion[2, 2] / sum(confusion[, 2])
+
+cat("Accuracy:", round(accuracy, 3), "\n")
+cat("Precision:", round(precision, 3), "\n")
+```
+
+* We can see that our prediction is very accurate (94%) and precise (97%).
+* We further check the ROC curve.
+
+### ROC and AUC
+
+```{r}
+roc <- roc(test$Private, probabilities)
+auc <- auc(roc)
+auc
+```
+
+* The AUC is obtained to be 97.98% which is excellent and tells us that our prediction works well.
+* We can now visualise the ROC curve and the AUC.
+
+```{r}
+ggroc(roc, color = "blue", legacy.axes = TRUE) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+  scale_x_continuous(labels = scales::percent_format()) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(x = "False Positive Rate", y = "True Positive Rate",
+       title = paste("ROC Curve (AUC = ", round(auc, 2), ")")) +
+  annotate("text", x = 0.5, y = 0.5, label = paste0("AUC = ", round(auc, 2)))
+```
+
+* The plot above shows the ROC curve with an AUC of 98% which suggests that our prediction is good.
+
+## CONCLUSION
+
+* Based on the given data, we could classify the type of college (Public or Private) with 88.9% accuracy.
+* We have used Exploratory Factor Analysis and Clustering for this classification.
+* We could also predict the type of college based on the variables provided.
+*	Using logistic regression, we predicted the type of college with 94% accuracy and 97% precision.
+*	An AUC of 98% for the ROC curve shows that the prediction is good.

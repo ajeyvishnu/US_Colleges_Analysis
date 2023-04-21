@@ -43,5 +43,4 @@
 * College_Data_Cleaned.csv is the dataset considered for the analysis where randonly 30 colleges where chosen from the original master college dataset from Kaggle website.
 * The US_College_Analysis.Rmd file contains the R code for the complete analysis performed, the flow of thought process, and inferences mentioned after each step.
 * The US_College_Analysis.html file gives the output of the Rmd file which includes the outputs of the file with visuals and inferences.
-* US_College_Analysis_Report.ppt file is a bit more detailed presentation of the Report with more visuals and inferences used for presentation.
 
